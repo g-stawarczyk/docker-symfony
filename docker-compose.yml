@@ -5,26 +5,45 @@ services:
         image: mysql
         volumes:
             - "./.data/db:/var/lib/mysql"
+        ports:
+            - 3306:3306
         environment:
             MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
-            MYSQL_DATABASE: ${MYSQL_DATABASE}
             MYSQL_USER: ${MYSQL_USER}
             MYSQL_PASSWORD: ${MYSQL_PASSWORD}
-    php:
+    php7:
         build: php7-fpm
-        ports:
-            - 9000:9000
         volumes:
-            - ${SYMFONY_APP_PATH}:/var/www/symfony
+            - ./static/php7:/var/www/php7
             - ./logs/symfony:/var/www/symfony/app/logs
+        environment:
+            - ELASTICSEARCH_HOST=elasticsearch
+            - MYSQL_HOST=mysql
+            - REDIS_HOST=redis
+    php5:
+        build: php5.6-fpm
+        volumes:
+            - ./static/php5:/var/www/php5
+            - ./app:/var/www/symfony
+            - ./logs/symfony:/var/www/symfony/app/logs
+        environment:
+            - ELASTICSEARCH_HOST=elasticsearch
+            - MYSQL_HOST=mysql
+            - REDIS_HOST=redis
+        links:
+            - blackfire
     nginx:
         build: nginx
         ports:
             - 80:80
         volumes_from:
-            - php
+            - php7
+            - php5
         volumes:
             - ./logs/nginx/:/var/log/nginx
+        links:
+            - php7
+            - php5
     elk:
         image: willdurand/elk
         ports:
@@ -33,5 +52,12 @@ services:
             - ./elk/logstash:/etc/logstash
             - ./elk/logstash/patterns:/opt/logstash/patterns
         volumes_from:
-            - php
+            - php7
             - nginx
+    blackfire:
+        image: blackfire/blackfire
+        env_file: ./.env
+    redis:
+        image: redis:3.0
+        ports:
+        - "6379:6379"
