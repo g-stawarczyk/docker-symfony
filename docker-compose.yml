@@ -24,7 +24,7 @@ services:
         build: php5.6-fpm
         volumes:
             - ./static/php5:/var/www/php5
-            - ./app:/var/www/symfony
+            - ../symfony/panel_v4:/var/www/symfony
             - ./logs/symfony:/var/www/symfony/app/logs
         environment:
             - ELASTICSEARCH_HOST=elasticsearch
@@ -32,6 +32,7 @@ services:
             - REDIS_HOST=redis
         links:
             - blackfire
+            - redis
     nginx:
         build: nginx
         ports:
@@ -44,20 +45,27 @@ services:
         links:
             - php7
             - php5
-    elk:
-        image: willdurand/elk
+    elastic:
+        build: elastic
+        mem_limit: 1g
+        cap_add:
+          - IPC_LOCK
         ports:
-            - 81:80
-        volumes:
-            - ./elk/logstash:/etc/logstash
-            - ./elk/logstash/patterns:/opt/logstash/patterns
-        volumes_from:
-            - php7
-            - nginx
+          - 9200:9200
+        # volumes:
+        #     - "./.data/elastic:/usr/share/elasticsearch/data"
+    # elk:
+    #     image: willdurand/elk
+    #     ports:
+    #         - 81:80
+    #     volumes:
+    #         - ./elk/logstash:/etc/logstash
+    #         - ./elk/logstash/patterns:/opt/logstash/patterns
+    #     volumes_from:
+    #         - php7
+    #         - nginx
     blackfire:
         image: blackfire/blackfire
         env_file: ./.env
     redis:
-        image: redis:3.0
-        ports:
-        - "6379:6379"
+        image: redis:latest 
